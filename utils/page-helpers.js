@@ -42,6 +42,23 @@ async function handleModalOverlay(page) {
   }
 }
 
+// Helper function to click elements with simple fallback
+async function clickWithFallback(page, role, name) {
+  try {
+    await page.getByRole(role, { name }).click({ timeout: 3000 });
+    console.log(`✅ Clicked ${role}: ${name}`);
+  } catch (error) {
+    console.log(`❌ Failed to click ${role}: ${name} - ${error.message}`);
+    // Try force click as fallback
+    try {
+      await page.getByRole(role, { name }).click({ force: true, timeout: 3000 });
+      console.log(`✅ Force clicked ${role}: ${name}`);
+    } catch (forceError) {
+      console.log(`❌ Force click also failed for ${role}: ${name}`);
+    }
+  }
+}
+
 // Helper function to interact with search input
 async function interactWithSearchInput(page, action, value = '') {
   const searchInput = page.locator('input[class*="focus:none"][class*="outline-none"][class*="px-2"][class*="py-1"][class*="grow"]');
@@ -64,5 +81,6 @@ async function interactWithSearchInput(page, action, value = '') {
 module.exports = {
   disableChatWidgets,
   handleModalOverlay,
+  clickWithFallback,
   interactWithSearchInput
 };
