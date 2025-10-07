@@ -1,87 +1,105 @@
 import { test, expect } from '@playwright/test';
 const { loginUser } = require('../../pages/login-page');
-const { handleModalOverlay, clickWithFallback, interactWithSearchInput } = require('../../utils/page-helpers');
+const { setupPage, navigateToCreateBenefit } = require('../../utils/navigation-helpers');
+const { fillFormField } = require('../../utils/form-helpers');
+const { handleModalOverlay, clickWithFallback, interactWithSearchInput, disableChatWidgets } = require('../../utils/page-helpers');
+const { verifyExactSuccessMessage } = require('../../utils/assertion-helpers');
+const benefitData = require('../../data/design-benefits-data.json');
 
-// Optional: Use this as beforeEach hook for multiple tests
-// test.beforeEach(async ({ page }) => {
-//   await loginUser(page);
-// });
+test.beforeEach('Login', async ({ page }) => {
+    await loginUser(page);
+    await page.waitForURL('**/dashboard');
+});
 
 test('/manage/design-benefits', async ({ page }) => {
-  // Set larger viewport for better spacing
-  
-  
-  // Login before running the test
-  await loginUser(page);
+    // Setup
+    await setupPage(page);
+    const benefit = benefitData.testBenefit;
+    
+    // Navigate to form
+    await handleModalOverlay(page);
+    await navigateToCreateBenefit(page);
+    await handleModalOverlay(page);
+    
+    // Click CREATE button with precise targeting
+    console.log('🔄 Clicking CREATE button...');
+    await page.getByRole('button', { name: 'CREATE' }).click({ timeout: 5000 });
+    console.log('✅ Clicked CREATE button');
+    
+    // Fill first page
+    await page.getByRole('textbox', { name: 'Title*' }).fill(benefit.title);
+    await page.getByRole('textbox', { name: 'Title*' }).press('Enter');
+    
+    // Handle search input interactions
+    await page.waitForSelector('input[class*="focus:none"][class*="outline-none"]', { state: 'visible' });
+    await page.waitForFunction(() => {
+        const input = document.querySelector('input[class*="focus:none"][class*="outline-none"]');
+        return input && !input.disabled && !input.readOnly;
+    });
+    
+    await interactWithSearchInput(page, 'click');
+    await interactWithSearchInput(page, 'fill', 'w');
+    await interactWithSearchInput(page, 'click');
+    await interactWithSearchInput(page, 'clear');
+    
+    // Fill remaining first page fields
+    await page.getByRole('textbox', { name: 'Title*' }).fill(benefit.title);
+    await page.getByRole('textbox', { name: 'Purpose*' }).fill(benefit.purpose);
+    
+    // Final search and person selection
+    await interactWithSearchInput(page, 'click');
+    await interactWithSearchInput(page, 'clear');
+    await interactWithSearchInput(page, 'fill', benefit.searchTerm);
+    await page.getByText(benefit.selectedPerson).click();
+    
+    // Fill second page
+    await page.getByRole('textbox', { name: 'Purpose*' }).fill(benefit.purpose);
+    await page.getByRole('textbox', { name: 'Benefits*' }).fill(benefit.benefits);
+    
+    // Click Next button with exact matching
+    console.log('🔄 Clicking Next button...');
+    await page.getByRole('button', { name: 'Next', exact: true }).click({ timeout: 5000 });
+    console.log('✅ Clicked Next button');
+    
+    // Wait for third page to load and fill fields using specific selectors
+    console.log('🔄 Waiting for third page to load...');
+    
+    // Wait for the specific textarea elements
+    try {
+        await page.waitForSelector('#coverage', { state: 'visible', timeout: 10000 });
+        console.log('✅ Third page loaded - Coverage textarea found');
+    } catch (error) {
+        console.log('❌ Coverage textarea not found:', error.message);
+        // Try alternative selector
+        await page.waitForSelector('textarea[id="coverage"]', { state: 'visible', timeout: 5000 });
+    }
+    
+    // Fill third page fields using specific IDs
+    try {
+        await page.locator('#coverage').fill(benefit.coverage);
+        console.log('✅ Filled Coverage field');
+    } catch (error) {
+        console.log('❌ Failed to fill Coverage field:', error.message);
+        // Try alternative selector
+        await page.locator('textarea[id="coverage"]').fill(benefit.coverage);
+        console.log('✅ Filled Coverage field with alternative selector');
+    }
+    
+    try {
+        await page.locator('#eligibility').fill(benefit.eligibility);
+        console.log('✅ Filled Eligibility field');
+    } catch (error) {
+        console.log('❌ Failed to fill Eligibility field:', error.message);
+        // Try alternative selector
+        await page.locator('textarea[id="eligibility"]').fill(benefit.eligibility);
+        console.log('✅ Filled Eligibility field with alternative selector');
+    }
+    
 
-  await page.getByRole('link', { name: 'Manage' }).click();
-  await page.getByRole('link', { name: 'Design Benefits' }).click();
-  
-  // Handle any overlays that might block the CREATE button
-  await handleModalOverlay(page);
-  
-  // Click CREATE button with fallback strategies
-  await clickWithFallback(page, 'button', 'CREATE');
-  await page.getByRole('textbox', { name: 'Title*' }).fill('adasd');
-  await page.getByRole('textbox', { name: 'Title*' }).press('Enter');
-  
-  // Wait for search input and interact with it
-  await page.waitForSelector('input[class*="focus:none"][class*="outline-none"]', { state: 'visible' });
-  await page.waitForFunction(() => {
-    const input = document.querySelector('input[class*="focus:none"][class*="outline-none"]');
-    return input && !input.disabled && !input.readOnly;
-  });
-  
-  // Interact with search input
-  await interactWithSearchInput(page, 'click');
-  await interactWithSearchInput(page, 'fill', 'w');
-  await interactWithSearchInput(page, 'click');
-  await interactWithSearchInput(page, 'clear');
-  
-  await page.getByRole('textbox', { name: 'Title*' }).click();
-  await page.getByRole('textbox', { name: 'Purpose*' }).click();
-  
-  // Second search input interaction
-  await interactWithSearchInput(page, 'click');
-  await interactWithSearchInput(page, 'clear');
-  
-  await page.getByRole('textbox', { name: 'Title*' }).fill('adasdadasd');
-  
-  // Wait for search input and interact with it
-  await page.waitForSelector('input[class*="focus:none"][class*="outline-none"]', { state: 'visible' });
-  
-  // Final search input interaction
-  await interactWithSearchInput(page, 'click');
-  await interactWithSearchInput(page, 'fill', 'work');
-  
-  await page.getByText('Brenden Bullock').click();
-  await page.getByRole('textbox', { name: 'Purpose*' }).click();
-  await page.getByRole('textbox', { name: 'Purpose*' }).fill('hello');
-  await page.getByRole('textbox', { name: 'Benefits*' }).click();
-  await page.getByRole('textbox', { name: 'Benefits*' }).fill('hello');
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Coverage*' }).click();
-  await page.getByRole('textbox', { name: 'Coverage*' }).fill('hello');
-  await page.getByText('Eligibility*').click();
-  await page.getByRole('textbox', { name: 'Eligibility*' }).fill('hello');
-  
-  // Handle any chat widget or overlay before clicking Send
-  await handleModalOverlay(page);
-  
-  // Click Send button with fallback strategies
-  await clickWithFallback(page, 'button', 'Send');
-  
-  // Verify success message is displayed
-  await page.waitForSelector('.mt-1.text-sm.text-white', { state: 'visible', timeout: 10000 });
-  
-  // Wait for the success message to contain the expected text
-  await page.waitForFunction(() => {
-    const element = document.querySelector('.mt-1.text-sm.text-white');
-    return element && element.textContent.includes('Successfully designed a benefit');
-  }, { timeout: 5000 });
-  
-  const successMessage = await page.locator('.mt-1.text-sm.text-white').textContent();
-  expect(successMessage).toBe('Successfully designed a benefit.');
-  console.log('✅ Success message displayed:', successMessage);
-  
+    // Submit form with XPath targeting
+    console.log('🔄 Submitting form...');
+    await page.locator('//button[normalize-space()="Send"]').click({ timeout: 5000 });
+    console.log('✅ Clicked Send button');
+    
+    await verifyExactSuccessMessage(page, 'Successfully designed a benefit.');
 });
