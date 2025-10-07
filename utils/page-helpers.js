@@ -75,9 +75,84 @@ async function interactWithSearchInput(page, action, value = '') {
   }
 }
 
+// Helper function to handle date picker interactions with multiple fallback strategies
+async function handleDatePicker(page, dateButtonSelector, targetDateSelector) {
+  console.log('Starting date picker interaction...');
+  
+  try {
+    // Wait for page to be stable
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000);
+    
+    // Strategy 1: Try normal interaction
+    console.log('Trying normal date picker interaction...');
+    await page.locator(dateButtonSelector).waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator(dateButtonSelector).click();
+    
+    // Wait for date picker to appear
+    await page.waitForSelector('.react-datepicker__month-container', { state: 'visible', timeout: 5000 });
+    await page.waitForTimeout(500);
+    
+    // Try to click the specific date
+    await page.locator(targetDateSelector).click();
+    console.log('Date picker interaction successful with normal approach');
+    return true;
+    
+  } catch (error) {
+    console.log('Normal date picker failed, trying alternative approaches...');
+    
+    try {
+      // Strategy 2: Force click approach
+      console.log('Trying force click approach...');
+      await page.locator(dateButtonSelector).click({ force: true });
+      await page.waitForTimeout(1000);
+      
+      // Check if date picker is visible
+      const isDatePickerVisible = await page.locator('.react-datepicker__month-container').isVisible();
+      if (isDatePickerVisible) {
+        await page.locator(targetDateSelector).click({ force: true });
+        console.log('Date picker interaction successful with force approach');
+        return true;
+      }
+      
+    } catch (forceError) {
+      console.log('Force click failed, trying JavaScript approach...');
+      
+      try {
+        // Strategy 3: JavaScript direct manipulation
+        await page.evaluate(({ dateButtonSelector, targetDateSelector }) => {
+          // Click the date button
+          const dateButton = document.querySelector(dateButtonSelector);
+          if (dateButton) {
+            dateButton.click();
+            
+            // Wait a bit for the picker to appear
+            setTimeout(() => {
+              const targetDate = document.querySelector(targetDateSelector);
+              if (targetDate) {
+                targetDate.click();
+              }
+            }, 500);
+          }
+        }, { dateButtonSelector, targetDateSelector });
+        
+        console.log('Date picker interaction attempted with JavaScript');
+        return true;
+        
+      } catch (jsError) {
+        console.log('All date picker strategies failed:', jsError.message);
+        return false;
+      }
+    }
+  }
+  
+  return false;
+}
+
 module.exports = {
   disableChatWidgets,
   handleModalOverlay,
   clickWithFallback,
-  interactWithSearchInput
+  interactWithSearchInput,
+  handleDatePicker
 };

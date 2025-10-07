@@ -1,0 +1,17 @@
+{
+  "testEmployee": {
+    "firstname": "sadwa",
+    "middlename": "sadwads", 
+    "lastname": "sadasd",
+    "email": "zakiorbgoso@gmail.com",
+    "mobile": "09772573535",
+    "address": "sawdas",
+    "nationality": "sadwads",
+    "religion": "sadwas",
+    "gender": "Male",
+    "location": "Manila, Metro Manila",
+    "position": "2",
+    "department": "18",
+    "employmentStatus": "18"
+  }
+}
