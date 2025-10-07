@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 const { loginUser } = require('../../pages/login-page');
 const { setupPage, navigateToCreateBenefit } = require('../../utils/navigation-helpers');
-const { fillFormField } = require('../../utils/form-helpers');
-const { handleModalOverlay, clickWithFallback, interactWithSearchInput, disableChatWidgets } = require('../../utils/page-helpers');
+const { handleModalOverlay, interactWithSearchInput } = require('../../utils/page-helpers');
 const { verifyExactSuccessMessage } = require('../../utils/assertion-helpers');
 const benefitData = require('../../data/design-benefits-data.json');
 
