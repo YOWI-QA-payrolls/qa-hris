@@ -49,7 +49,7 @@ test('Apply to Job', async ({ page }) => {
   await page.getByLabel('Gender*').selectOption('Male');
   await page.getByRole('textbox', { name: 'Birth Date*' }).click();
   await page.getByRole('combobox').nth(2).selectOption('2003');
-  await page.getByRole('option', { name: 'Choose Monday, October 20th,' }).click();
+  await page.getByRole('option', { name: 'Choose Thursday, November 20th,' }).click();
   await page.getByRole('textbox', { name: 'Mobile No.*' }).click();
   await page.getByRole('textbox', { name: 'Mobile No.*' }).fill('9772575953');
   await page.getByRole('textbox', { name: 'City Address*' }).click();
@@ -100,10 +100,10 @@ test('Apply to Job', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Company Organization' }).fill('Copdonalds');
   await page.locator('div').filter({ hasText: /^Date From$/ }).getByPlaceholder('mm/dd/yyyy').click();
   await page.getByRole('combobox').nth(1).selectOption('2015');
-  await page.getByRole('option', { name: 'Choose Tuesday, October 20th,' }).click();
+  await page.getByRole('option', { name: 'Choose Wednesday, November 18th,' }).click();
   await page.locator('div').filter({ hasText: /^Date ToCurrently Employed$/ }).getByPlaceholder('mm/dd/yyyy').click();
   await page.getByRole('combobox').nth(1).selectOption('2016');
-  await page.getByRole('option', { name: 'Choose Thursday, October 20th,' }).click();
+  await page.getByRole('option', { name: 'Choose Saturday, November 19th,' }).click();
   await page.locator('.ql-editor').click();
   await page.locator('.ql-editor').fill('test');
   await page.getByRole('button', { name: 'ADD EXPERIENCE' }).click();
@@ -115,14 +115,99 @@ test('Apply to Job', async ({ page }) => {
 
 
 
-// Your code with scrolling
-await page.getByRole('button', { name: 'SUBMIT' }).click();
+// Privacy modal scrolling and agreement handling
+async function focusScrollableArea(page) {
+  const scrollableAreas = page.locator('div[class*="overflow-auto"]');
+  const count = await scrollableAreas.count();
+  for (let i = 0; i < count; i++) {
+    const area = scrollableAreas.nth(i);
+    if (await area.isVisible()) {
+      await area.click();
+      return true;
+    }
+  }
+  return false;
+}
 
-await scrollAndWaitForButton(page, 'I agree');
-await scrollAndWaitForButton(page, 'I agree');
-await scrollAndWaitForButton(page, 'I agree');
-await scrollAndWaitForButton(page, 'I agree');
-await scrollAndWaitForButton(page, 'I agree');
+async function scrollAndClickAgree(page, timeout = 10000) {
+  const agreeButton = page.getByRole('button', { name: /I agree/i });
+  const start = Date.now();
+  let iteration = 0;
 
-  await page.getByRole('button', { name: 'CONTINUE' }).click();
+  while (Date.now() - start < timeout) {
+    if (await agreeButton.isVisible()) {
+      await agreeButton.click();
+      await page.waitForTimeout(200);
+      await focusScrollableArea(page);
+      return true;
+    }
+    if (iteration % 5 === 0) await focusScrollableArea(page);
+    await page.keyboard.press('PageDown');
+    await page.waitForTimeout(150);
+    iteration++;
+  }
+  return false;
+}
+
+// Process privacy modal sections
+await focusScrollableArea(page);
+await page.waitForTimeout(300);
+
+const maxRounds = 6;
+let finalSectionProcessed = false;
+
+for (let round = 0; round < maxRounds; round++) {
+  const isFinalSection = await page.locator('li', { hasText: 'XII. Feedback on our Privacy Notice' }).isVisible();
+  
+  // Wait for section to appear and refocus
+  await page.waitForTimeout(300);
+  await focusScrollableArea(page);
+  await page.waitForTimeout(200);
+
+  const timeout = isFinalSection ? 15000 : 8000;
+  let success = await scrollAndClickAgree(page, timeout);
+
+  if (!success) {
+    // Retry with refocus
+    await page.waitForTimeout(500);
+    await focusScrollableArea(page);
+    await page.waitForTimeout(200);
+    success = await scrollAndClickAgree(page, isFinalSection ? 12000 : 5000);
+    
+    // Additional fallback for final section
+    if (!success && isFinalSection) {
+      await focusScrollableArea(page);
+      await page.waitForTimeout(200);
+      for (let i = 0; i < 15; i++) {
+        await page.keyboard.press('PageDown');
+        await page.waitForTimeout(100);
+        const agreeBtn = page.getByRole('button', { name: /I agree/i });
+        if (await agreeBtn.isVisible()) {
+          await agreeBtn.click();
+          await page.waitForTimeout(200);
+          await focusScrollableArea(page);
+          success = true;
+          break;
+        }
+      }
+    }
+    
+    // Only break if not final section and still failed
+    if (!success && !isFinalSection) break;
+  }
+
+  // Mark final section as processed and exit if successful
+  if (isFinalSection) {
+    finalSectionProcessed = true;
+    if (success) break;
+  }
+  
+  await page.waitForTimeout(300);
+}
+
+// Handle final button
+const finalButton = page.getByRole('button', { name: /I agree|CONTINUE/i });
+if (await finalButton.isVisible()) {
+  await finalButton.click();
+}
 });

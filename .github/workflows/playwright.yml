@@ -1,47 +1,70 @@
 name: Playwright Tests
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-
   workflow_dispatch:
 
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-        cache: 'npm'
-    
-    - name: Cache Playwright browsers
-      uses: actions/cache@v4
-      id: playwright-cache
-      with:
-        path: |
-          ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Install Playwright Browsers
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps
-    
-    - name: Run Playwright tests
-      run: npx playwright test --project=chromium
-    
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test --project=chromium
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      # ---------- Upload to Testiny ----------
+      - name: Upload Playwright results to Testiny
+        if: ${{ always() }}
+        env:
+          TESTINY_API_KEY: ${{ secrets.TESTINY_API_KEY }}
+          TESTINY_PROJECT_ID: ${{ secrets.TESTINY_PROJECT_ID }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_BRANCH: ${{ github.ref_name }}
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          echo "Uploading Playwright results to Testiny..."
+
+          npx @testiny/cli automation \
+            --project "$TESTINY_PROJECT_ID" \
+            --source "playwright-tests" \
+            --field-values run_id=$GITHUB_RUN_ID,sha=$GITHUB_SHA,branch=$GITHUB_BRANCH \
+            --run-fields run_id,sha,branch \
+            --playwright playwright-report/test-results.json \
+            || echo "⚠️ Testiny upload failed, continuing pipeline."
