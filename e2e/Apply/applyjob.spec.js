@@ -6,7 +6,7 @@ test('Apply to Job', async ({ page }) => {
   await page.getByRole('link', { name: 'Find Jobs' }).click();
   
   //adding this for test
-
+//new test adding this comment
   // Find all "Apply Now!" links and click the one that goes to /job-app-form/101
   const applyLinks = page.getByRole('link', { name: 'Apply Now!' });
   await expect(applyLinks.first()).toBeVisible({ timeout: 20000 });
