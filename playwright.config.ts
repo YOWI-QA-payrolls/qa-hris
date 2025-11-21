@@ -26,6 +26,12 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['json', { outputFile: 'playwright-report/test-results.json' }],
   ],
+
+  /* Global expect timeout for assertions (increase if assertions time out) */
+  expect: {
+    timeout: 10_000, // 10s
+  },
+
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
@@ -33,6 +39,15 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Slow down Playwright operations to make them easier to observe on slow machines */
+    launchOptions: {
+      slowMo: 200, // 200ms delay between Playwright actions
+    },
+
+    /* Increase action and navigation timeouts for slow machines */
+    actionTimeout: 60_000, // 60s for click/type/etc
+    navigationTimeout: 60_000, // 60s for page.goto/navigation
   },
 
   /* Configure projects for major browsers */
@@ -51,26 +66,6 @@ export default defineConfig({
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
 
   /* Run your local dev server before starting the tests */

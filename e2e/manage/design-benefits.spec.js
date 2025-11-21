@@ -5,7 +5,7 @@ const { handleModalOverlay, interactWithSearchInput } = require('../../utils/pag
 const { verifyExactSuccessMessage } = require('../../utils/assertion-helpers');
 const benefitData = require('../../data/design-benefits-data.json');
 
-test.skip(true, 'Skipping entire spec file');
+//test.skip(true, 'Skipping entire spec file');
 
 test.beforeEach('Login', async ({ page }) => {
     await loginUser(page);
